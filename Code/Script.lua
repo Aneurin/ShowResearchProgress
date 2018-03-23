@@ -1,13 +1,13 @@
 function AddResearchProgressBar()
     local dlg = GetXDialog("HUD")
     if dlg['idResearchProgress'] then
-        -- The progress bar is already there, so this must have been called more
-        -- than once
-        return
+        -- The progress bar is already there, so this must have been called more than once. This
+        -- might be a request to rebuild it, so remove the existing one and start again
+        interface['idResearchProgress']:Done()
     end
     local this_mod_dir = debug.getinfo(2, "S").source:sub(2, -16)
     local left_buttons = dlg['idLeftButtons']
-    XFrameProgress:new({
+    local progress_bar = XFrameProgress:new({
         Id = "idResearchProgress",
         Image = "UI/HUD/day_pad.tga",
         Margins = box(0, 0, 0, 1),
@@ -23,9 +23,9 @@ function AddResearchProgressBar()
         SeparatorOffset = 4;
     }, left_buttons)
 
-    local progress_bar = dlg['idResearchProgress']
     -- This appears to be needed for FrameBox to take effect, otherwise the
-    -- progress bar isn't correctly inset into the frame
+    -- progress bar isn't correctly inset into the frame. I'm not sure why though as I thought it
+    -- was about tiling an image - possibly it changes the layout model(?)
     progress_bar.idProgress:SetTileFrame(true)
     progress_bar:SetRolloverTitle(T{
         T{311, "Research"},
