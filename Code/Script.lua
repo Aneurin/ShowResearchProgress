@@ -8,7 +8,7 @@ function AddResearchProgressBar(queue_count)
     if dlg['idResearchProgressContainer'] then
         -- The progress bar is already there, so this must have been called more than once. This
         -- might be a request to rebuild it, so remove the existing one and start again
-        dlg['idResearchProgressContainer']:Done()
+        dlg['idResearchProgressContainer']:delete()
     end
     local this_mod_dir = debug.getinfo(2, "S").source:sub(2, -16)
     local left_buttons = dlg['idLeftButtons']
