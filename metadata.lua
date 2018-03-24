@@ -6,10 +6,10 @@ return PlaceObj('ModDef', {
 	'id', "dWSz0GX",
 	'steam_id', "1337070623",
 	'author', "Waywocket",
-	'version', 16,
-	'lua_revision', 228003,
+	'version', 18,
+	'lua_revision', 228184,
 	'code', {
 		"Code/Script.lua",
 	},
-	'saved', 1521677156,
+	'saved', 1521916266,
 })
