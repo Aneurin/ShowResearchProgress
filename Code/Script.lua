@@ -180,8 +180,12 @@ end
 -- inserting new items into the UI, by firing a "UIReady" message. They use the "g_UIReady" global
 -- to record when this message has been sent, in order to make it possible to include the same code
 -- in multiple mods without ending up with the message sent multiple times.
+if _G.g_UIReady == nil then
+    -- Check _G explicitly, to avoid the "Attempt to use an undefined global 'g_UIReady'" error
+    g_UIReady = false
+end
 function OnMsg.LoadGame()
-    if not UIReady then
+    if not g_UIReady then
         -- This seems a little ridiculous, but it's the only way I've found to
         -- trigger when the UI is ready after loading a game
         CreateGameTimeThread(function()
