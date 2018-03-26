@@ -2,7 +2,7 @@ ShowResearchProgressOnHUD = {}
 -- Randomly generated number to start counting from, to generate IDs for translatable strings
 ShowResearchProgressOnHUD.StringIdBase = 76827246
 
-function AddResearchProgressBar(queue_count)
+function ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
     local dlg = GetXDialog("HUD")
     if not dlg then return end
     if dlg['idResearchProgressContainer'] then
@@ -12,13 +12,13 @@ function AddResearchProgressBar(queue_count)
     end
     local this_mod_dir = debug.getinfo(2, "S").source:sub(2, -16)
     local left_buttons = dlg['idLeftButtons']
-    local progress_bar_container = XWindow:new({
+    self.progress_bar_container = XWindow:new({
         Id = "idResearchProgressContainer",
         Margins = box(0, 0, 0, 0),
         Background = RGBA(0, 0, 0, 0),
         LayoutMethod = "HList",
     }, left_buttons)
-    local progress_bar = XFrameProgress:new({
+    self.progress_bar = XFrameProgress:new({
         Id = "idResearchProgress",
         Image = "UI/HUD/day_pad.tga",
         Margins = box(0, 0, 0, 1),
@@ -32,17 +32,17 @@ function AddResearchProgressBar(queue_count)
         MaxProgress = 100,
         SeparatorImage = "UI/HUD/day_shine.tga",
         SeparatorOffset = 4;
-    }, progress_bar_container)
+    }, self.progress_bar_container)
 
     -- This appears to be needed for FrameBox to take effect, otherwise the
     -- progress bar isn't correctly inset into the frame. I'm not sure why though as I thought it
     -- was about tiling an image - possibly it changes the layout model(?)
-    progress_bar.idProgress:SetTileFrame(true)
-    progress_bar:SetRolloverTitle(T{
+    self.progress_bar.idProgress:SetTileFrame(true)
+    self.progress_bar:SetRolloverTitle(T{
         T{311, "Research"},
         UICity
     })
-    progress_bar:SetRolloverText(T{
+    self.progress_bar:SetRolloverText(T{
         T{
             ShowResearchProgressOnHUD.StringIdBase + 10,
             "Manage the research of new Technologies.<newline><newline>Current Research: <em><name></em><newline><left>Research progress: <em><percent(progress)></em>",
@@ -59,74 +59,77 @@ function AddResearchProgressBar(queue_count)
         },
         UICity
     })
-    progress_bar:SetRolloverHint(T{
+    self.progress_bar:SetRolloverHint(T{
         T{
             4005,
             "<em><ShortcutName('actionResearchScreen')></em> - open Research Screen"
         },
         UICity
     })
-    XText:new({
+    self.queue_count_element = XText:new({
         Id = "idQueueCount",
         TextFont = "HexChoice",
         Margins = box(0, 0, 0, 1),
         TextColor = RGB(255, 255, 255),
         RolloverTextColor = RGB(255, 255, 255),
         VAlign = "bottom",
-    }, progress_bar_container):SetVisible(queue_count)
-    return progress_bar_container
+    }, self.progress_bar_container)
+    self.queue_count_element:SetVisible(queue_count)
+    return self.progress_bar_container
 end
 
-function UpdateResearchProgressBar()
+function ShowResearchProgressOnHUD:UpdateResearchProgressBar()
     if not UICity then
         return
     end
-    local dlg = GetXDialog("HUD")
-    local progress_bar = dlg.idResearchProgress
 
     -- This shouldn't ever happen, but it can't hurt to check
-    if not progress_bar then
+    if not self.progress_bar then
         return
     end
 
     -- When you mouse over an element, its tooltip ('rollover') is updated
     -- automatically, but to have it update while it's open, it needs to be
     -- triggered
-    XUpdateRolloverWindow(progress_bar)
+    XUpdateRolloverWindow(self.progress_bar)
     local this_mod_dir = debug.getinfo(2, "S").source:sub(2, -16)
     local current_research = UICity:GetResearchInfo()
-    if current_research and TechDef[current_research].display_name then
-        progress_bar:SetProgress(UICity:GetResearchProgress())
-        progress_bar:SetProgressImage(this_mod_dir.."UI/progress_bar.tga")
-        progress_bar:SetSeparatorImage("UI/HUD/day_shine.tga")
+    local research_is_queued = current_research and TechDef[current_research].display_name
+    if research_is_queued then
+        self.progress_bar:SetProgress(UICity:GetResearchProgress())
+        self.progress_bar:SetProgressImage(this_mod_dir.."UI/progress_bar.tga")
+        self.progress_bar:SetSeparatorImage("UI/HUD/day_shine.tga")
     else
-        progress_bar:SetProgress(100)
-        progress_bar:SetProgressImage(this_mod_dir.."UI/progress_bar_none.tga")
-        progress_bar:SetSeparatorImage("")
+        self.progress_bar:SetProgress(100)
+        self.progress_bar:SetProgressImage(this_mod_dir.."UI/progress_bar_none.tga")
+        self.progress_bar:SetSeparatorImage("")
     end
-    dlg.idQueueCount:SetText(T{
+    self.queue_count_element:SetText(T{
             ShowResearchProgressOnHUD.StringIdBase + 11,
             "<ResearchPoints(count)> in queue",
             count = #UICity:GetResearchQueue()
     })
+    self.progress_bar_container:SetVisible(research_is_queued or not self.hide_when_empty)
 end
 
 function OnMsg.UIReady()
     local queue_count = false
     if ModConfig then
         queue_count = ModConfig:Get("ShowResearchProgressOnHUD", "QueueCount")
+        ShowResearchProgressOnHUD.hide_when_empty = ModConfig:Get(
+            "ShowResearchProgressOnHUD", "HideWhenEmpty")
     end
-    AddResearchProgressBar(queue_count)
-    UpdateResearchProgressBar()
+    ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
+    ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 function OnMsg.NewHour()
-    UpdateResearchProgressBar()
+    ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 function OnMsg.TechResearched()
-    UpdateResearchProgressBar()
+    ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 function OnMsg.ResearchQueueChange()
-    UpdateResearchProgressBar()
+    ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 
 function OnMsg.ModConfigReady()
@@ -137,7 +140,16 @@ function OnMsg.ModConfigReady()
         name = T{ShowResearchProgressOnHUD.StringIdBase + 1, "Show Number in Queue"},
         desc = T{
             ShowResearchProgressOnHUD.StringIdBase + 2,
-            "Show a count of the number of technologies currently in the research queue"
+            "Show a count of the number of technologies currently in the research queue."
+        },
+        type = "boolean",
+        default = false
+    })
+    ModConfig:RegisterOption("ShowResearchProgressOnHUD", "HideWhenEmpty", {
+        name = T{ShowResearchProgressOnHUD.StringIdBase + 3, "Hide When Queue is Empty"},
+        desc = T{
+            ShowResearchProgressOnHUD.StringIdBase + 4,
+            "Instead of highlighting the bar in red when the research queue is empty, hide it entirely."
         },
         type = "boolean",
         default = false
@@ -145,16 +157,22 @@ function OnMsg.ModConfigReady()
     -- Since this mod doesn't require ModConfig, it can't wait about for it and therefore might have
     -- already created the bar with the default settings, so we need to check
     local queue_count = ModConfig:Get("ShowResearchProgressOnHUD", "QueueCount")
+    ShowResearchProgressOnHUD.hide_when_empty = ModConfig:Get(
+        "ShowResearchProgressOnHUD", "HideWhenEmpty")
     if queue_count then
-        AddResearchProgressBar(queue_count)
-        UpdateResearchProgressBar()
+        ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
+        ShowResearchProgressOnHUD:UpdateResearchProgressBar()
     end
 end
 
 function OnMsg.ModConfigChanged(mod_id, option_id, value)
-    if mod_id == "ShowResearchProgressOnHUD" and option_id == "QueueCount" then
-        AddResearchProgressBar(value)
-        UpdateResearchProgressBar()
+    if mod_id == "ShowResearchProgressOnHUD" then
+        if option_id == "QueueCount" then
+            ShowResearchProgressOnHUD:AddResearchProgressBar(value)
+        elseif option_id == "HideWhenEmpty" then
+            ShowResearchProgressOnHUD.hide_when_empty = value
+        end
+        ShowResearchProgressOnHUD:UpdateResearchProgressBar()
     end
 end
 
