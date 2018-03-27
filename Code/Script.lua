@@ -114,7 +114,7 @@ end
 
 function OnMsg.UIReady()
     local queue_count = false
-    if ModConfig then
+    if rawget(_G, "ModConfig") then
         queue_count = ModConfig:Get("ShowResearchProgressOnHUD", "QueueCount")
         ShowResearchProgressOnHUD.hide_when_empty = ModConfig:Get(
             "ShowResearchProgressOnHUD", "HideWhenEmpty")
@@ -180,7 +180,7 @@ end
 -- inserting new items into the UI, by firing a "UIReady" message. They use the "g_UIReady" global
 -- to record when this message has been sent, in order to make it possible to include the same code
 -- in multiple mods without ending up with the message sent multiple times.
-if _G.g_UIReady == nil then
+if rawget(_G, "g_UIReady") == nil then
     -- Check _G explicitly, to avoid the "Attempt to use an undefined global 'g_UIReady'" error
     g_UIReady = false
 end
