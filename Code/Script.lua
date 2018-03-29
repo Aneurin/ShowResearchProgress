@@ -26,6 +26,7 @@ function ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
         VAlign = "bottom",
         HandleMouse = true,
         RolloverTemplate = "Rollover",
+        RolloverAnchor = "top",
         ProgressImage = this_mod_dir.."UI/progress_bar.tga",
         MinWidth = 146,
         MaxWidth = 146,
@@ -45,7 +46,10 @@ function ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
     self.progress_bar:SetRolloverText(T{
         T{
             ShowResearchProgressOnHUD.StringIdBase + 10,
-            "Manage the research of new Technologies.<newline><newline>Current Research: <em><name></em><newline><left>Research progress: <em><percent(progress)></em>",
+            "Manage the research of new Technologies.<newline><newline>"..
+            "Current Research: <em><name></em><newline>"..
+            "Research Progress: <em><percent(progress)> (<done> / <ResearchPoints(total)>)</em>"..
+            "<newline>Approximate Time Remaining: <em><eta></em>",
             name = function()
                 local current_research = UICity and UICity:GetResearchInfo()
                 if not current_research or not TechDef[current_research].display_name then
@@ -55,7 +59,25 @@ function ShowResearchProgressOnHUD:AddResearchProgressBar(queue_count)
             end,
             progress = function()
                 return UICity:GetResearchProgress()
-            end
+            end,
+            done = function()
+                local tech_id, points, max_points = UICity:GetResearchInfo()
+                return tech_id and points or 0
+            end,
+            total = function()
+                local tech_id, points, max_points = UICity:GetResearchInfo()
+                return tech_id and max_points or 0
+            end,
+            eta = function()
+                local tech_id, points, max_points = UICity:GetResearchInfo()
+                local rate = UICity:GetEstimatedRP()
+                if tech_id and rate > 0 then
+                    local eta = MulDivRound(const.HoursPerDay, (max_points - points), rate)
+                    return FormatDuration(eta)
+                else
+                    return T{130, "N/A"}
+                end
+            end,
         },
         UICity
     })
@@ -129,6 +151,9 @@ function OnMsg.TechResearched()
     ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 function OnMsg.ResearchQueueChange()
+    ShowResearchProgressOnHUD:UpdateResearchProgressBar()
+end
+function OnMsg.AnomalyAnalyzed() -- To update immediately if you get RP but don't complete a tech
     ShowResearchProgressOnHUD:UpdateResearchProgressBar()
 end
 
